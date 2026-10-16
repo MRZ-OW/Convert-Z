@@ -1,0 +1,66 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install ffmpeg
+        run: choco install ffmpeg-full -y --no-progress
+
+      - name: Build and self-test
+        shell: powershell
+        run: .\build.ps1 -SelfTest
+
+      - name: Checksums
+        shell: pwsh
+        run: |
+          foreach ($f in "ConvertZ.zip", "dist/ConvertZ.exe") {
+            "{0}  {1}" -f (Get-FileHash $f -Algorithm SHA256).Hash.ToLower(), (Split-Path $f -Leaf)
+          } | Set-Content SHA256SUMS.txt -Encoding ascii
+          Get-Content SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ConvertZ
+          path: |
+            ConvertZ.zip
+            SHA256SUMS.txt
+            selftest.log
+
+      - uses: actions/attest-build-provenance@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          subject-path: |
+            ConvertZ.zip
+            dist/ConvertZ.exe
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $fence = '```'
+          $notes = (Get-Content .github/release-notes.md -Raw).Replace('{{REPO}}', $env:GITHUB_REPOSITORY)
+          $notes += "`n$fence`n" + (Get-Content SHA256SUMS.txt -Raw).Trim() + "`n$fence`n"
+          $notes += "`nBuilt by [this workflow run]($env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID) from commit $env:GITHUB_SHA.`n"
+          Set-Content notes.md $notes
+          gh release create $env:GITHUB_REF_NAME ConvertZ.zip SHA256SUMS.txt --title "Convert-Z $($env:GITHUB_REF_NAME.TrimStart('v'))" --notes-file notes.md

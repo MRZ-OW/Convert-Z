@@ -1,0 +1,7 @@
+src/bin/
+src/obj/
+dist/
+snapshots/
+*.zip
+selftest.log
+SHA256SUMS.txt
