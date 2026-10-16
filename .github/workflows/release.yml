@@ -32,9 +32,10 @@ jobs:
       - name: Checksums
         shell: pwsh
         run: |
-          foreach ($f in "ConvertZ.zip", "dist/ConvertZ.exe") {
+          $sums = foreach ($f in "ConvertZ.zip", "dist/ConvertZ.exe") {
             "{0}  {1}" -f (Get-FileHash $f -Algorithm SHA256).Hash.ToLower(), (Split-Path $f -Leaf)
-          } | Set-Content SHA256SUMS.txt -Encoding ascii
+          }
+          $sums | Set-Content SHA256SUMS.txt -Encoding ascii
           Get-Content SHA256SUMS.txt
 
       - uses: actions/upload-artifact@v4
