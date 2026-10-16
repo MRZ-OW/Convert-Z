@@ -52,7 +52,7 @@ namespace ConvertZ
             string ext = job.Target.Ext;
             double duration = probe.Duration;
 
-            var opts = new PlanOptions { AllowCopy = true, Path = StartPath(job.Target) };
+            var opts = new PlanOptions { AllowCopy = true, Path = StartPath(job.Target), HwDecode = !CudaBroken };
             for (int attempt = 0; attempt < 6; attempt++)
             {
                 string final = UniquePath(dir, stem, ext);
@@ -86,10 +86,21 @@ namespace ConvertZ
                 TryDelete(temp);
                 string tail = r.Tail(4);
                 Log.Write("  failed (exit " + r.ExitCode + "): " + tail.Replace("\n", " | "));
-                NoteGpuFailure(tail);
+                NoteGpuFailure(r.Tail(40));
+                bool nvencLeft = !NvencBroken || !Planner.EncodesWithNvenc(job.Target);
 
                 if (plan.UsedCopy) { opts.AllowCopy = false; continue; }
-                if (plan.Path == VideoPath.GpuFull) { opts.Path = (NvencBroken || CudaBroken) ? VideoPath.Cpu : VideoPath.GpuDecode; continue; }
+                if (plan.Path == VideoPath.GpuFull)
+                {
+                    opts.Path = nvencLeft ? VideoPath.GpuDecode : VideoPath.Cpu;
+                    opts.HwDecode = !CudaBroken;
+                    continue;
+                }
+                if (plan.Path == VideoPath.GpuDecode && plan.UsedHwDecode && CudaBroken && nvencLeft)
+                {
+                    opts.HwDecode = false;  // NVENC with CPU decoding
+                    continue;
+                }
                 if (plan.Path == VideoPath.GpuDecode) { opts.Path = VideoPath.Cpu; continue; }
                 job.Error = Friendly(tail, r.ExitCode);
                 return false;
@@ -100,8 +111,8 @@ namespace ConvertZ
 
         static VideoPath StartPath(Target t)
         {
-            if (CudaBroken) return VideoPath.Cpu;
             if (NvencBroken && Planner.EncodesWithNvenc(t)) return VideoPath.Cpu;
+            if (CudaBroken) return Planner.EncodesWithNvenc(t) ? VideoPath.GpuDecode : VideoPath.Cpu;
             return VideoPath.GpuFull;
         }
 

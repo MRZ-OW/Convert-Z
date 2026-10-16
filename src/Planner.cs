@@ -16,6 +16,7 @@ namespace ConvertZ
     {
         public bool AllowCopy = true;
         public VideoPath Path = VideoPath.GpuFull;
+        public bool HwDecode = true;
     }
 
     sealed class Plan
@@ -23,6 +24,7 @@ namespace ConvertZ
         public readonly List<string> Args = new List<string>();
         public string Error;
         public bool UsedCopy;
+        public bool UsedHwDecode;
         public VideoPath? Path;
         public string Summary = "";
 
@@ -90,12 +92,13 @@ namespace ConvertZ
 
             bool vcopy = o.AllowCopy && vids.All(v => VideoCopyOk(t.Id, v.Codec));
             VideoPath path = o.Path;
-            if (t.Id == "avi" && path == VideoPath.GpuFull) path = VideoPath.GpuDecode;
+            if (path == VideoPath.GpuFull && (t.Id == "avi" || !o.HwDecode)) path = VideoPath.GpuDecode;
 
             if (!vcopy)
             {
                 if (path == VideoPath.GpuFull) plan.Add("-hwaccel", "cuda", "-hwaccel_output_format", "cuda");
-                else if (path == VideoPath.GpuDecode) plan.Add("-hwaccel", "cuda");
+                else if (path == VideoPath.GpuDecode && o.HwDecode) plan.Add("-hwaccel", "cuda");
+                plan.UsedHwDecode = path != VideoPath.Cpu && o.HwDecode;
             }
             plan.Add("-i", input);
 
@@ -189,7 +192,7 @@ namespace ConvertZ
             var v = p.Video.FirstOrDefault();
             if (v == null) { plan.Error = "This file has no video track."; return; }
             var path = o.Path == VideoPath.Cpu ? VideoPath.Cpu : VideoPath.GpuDecode;
-            if (path == VideoPath.GpuDecode) plan.Add("-hwaccel", "cuda");
+            if (path == VideoPath.GpuDecode && o.HwDecode) { plan.Add("-hwaccel", "cuda"); plan.UsedHwDecode = true; }
             plan.Path = path;
             plan.Add("-i", input);
             plan.Add("-filter_complex",

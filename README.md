@@ -1,68 +1,46 @@
 # Convert-Z
 
-Right-click a video, audio or image file, pick **Convert to** and a format, and the converted file shows
-up next to the original. No windows pop up. A small tray icon shows the progress and goes away when it's
-done.
+Right-click a video, audio or image file, choose **Convert to** and pick a format. The new file shows
+up next to the original. A small tray icon shows progress while it works, then disappears.
 
-It's a front end for ffmpeg. On NVIDIA cards, video is decoded and encoded on the GPU (NVENC). Without
-one it falls back to the CPU.
+It uses ffmpeg, and your NVIDIA GPU for video if you have one.
 
 ## Install
 
-1. Download `ConvertZ.zip` from [Releases](../../releases) and unzip it.
-2. Run `Install.cmd`.
+Grab `ConvertZ.zip` from [Releases](../../releases), unzip it and run `Install.cmd`. No admin needed.
+If you don't have ffmpeg, it gets installed with winget.
 
-It installs for your user only, so no admin is needed. If you don't have ffmpeg, it gets it with winget.
-`Uninstall.cmd` removes everything again.
+`Uninstall.cmd` removes it.
 
-On Windows 11's new right-click menu, the entry is under **Show more options**.
+On the Windows 11 menu it's under Show more options.
 
 ## Formats
 
 | Right-click on | Convert to |
 |---|---|
-| mp4 mkv mov avi wmv flv webm m4v mpg mpeg ts mts m2ts 3gp ogv vob | MP4, MKV, WebM, MOV, AVI, GIF, and MP3, M4A, WAV, FLAC (audio only) |
+| mp4 mkv mov avi wmv flv webm m4v mpg mpeg ts mts m2ts 3gp ogv vob | MP4, MKV, WebM, MOV, AVI, GIF, or audio only: MP3, M4A, WAV, FLAC |
 | gif | MP4, WebM, MOV, MKV, PNG |
 | mp3 wav flac m4a m4b aac ogg oga opus wma aif aiff ac3 amr mka wv ape | MP3, M4A, WAV, FLAC, OGG, Opus |
 | jpg jpeg jfif png bmp webp tif tiff ico tga avif jxl | PNG, JPG, WebP, BMP, TIFF, ICO |
 
-## Details
+## Notes
 
-- **Remux first.** If the streams already fit the new container, they're copied instead of re-encoded,
-  so an OBS `.mkv` turns into an `.mp4` in seconds, with every audio track kept.
-- **Codecs.** When it does re-encode, MP4, MOV and MKV get H.264 and WebM gets AV1.
-- **NVIDIA driver.** GPU encoding with ffmpeg 8.1 needs NVIDIA driver 610 or newer.
-- **Nothing gets overwritten.** If the name is taken, you get `name (1).mp4`.
-- **Multiple files.** Select several and they queue behind one tray icon. Right-click the icon to cancel.
-- **Errors.** If something fails, one dialog says why at the end. The log is in
-  `%LocalAppData%\ConvertZ\ConvertZ.log`.
-
-## Is the download safe?
-
-- **Built by GitHub.** The release zip is built and tested by [GitHub Actions](.github/workflows/release.yml)
-  from the tagged source, not uploaded from someone's PC.
-- **Verifiable.** Each release has a signed build attestation and SHA-256 checksums. To check that a
-  download came from this repo's workflow:
-  ```
-  gh attestation verify ConvertZ.zip --repo MRZ-OW/Convert-Z
-  ```
-- **Small enough to read.** The exe is a small .NET Framework program, so you can open it in ILSpy and
-  read it, or build it yourself.
-- **Not code-signed.** Windows may warn that the publisher is unknown.
+- If the streams already fit the new container it just remuxes, so an OBS mkv becomes an mp4 in a
+  second and keeps all its audio tracks.
+- MP4, MOV and MKV are encoded as H.264 and WebM as AV1. GPU encoding with ffmpeg 8.1 needs NVIDIA
+  driver 610 or newer.
+- Existing files are never overwritten; you get `name (1).mp4` instead.
+- Select several files and they queue up. Right-click the tray icon to cancel.
+- Log: `%LocalAppData%\ConvertZ\ConvertZ.log`
 
 ## Building
 
-You need the .NET SDK. It targets .NET Framework 4.8, which comes with Windows 10 and 11, and needs
-ffmpeg on PATH for the tests.
+Needs the .NET SDK and ffmpeg on PATH.
 
 ```
 .\build.ps1 -SelfTest
 ```
 
-The self-test converts generated clips through every menu entry and checks each result with ffprobe.
-With an NVIDIA card, it also checks that video re-encodes really ran on the GPU. `e2e.ps1` clicks the
-installed menu through the Windows shell.
-
 ## License
 
-[MIT](LICENSE)
+MIT

@@ -59,8 +59,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $fence = '```'
-          $notes = (Get-Content .github/release-notes.md -Raw).Replace('{{REPO}}', $env:GITHUB_REPOSITORY)
-          $notes += "`n$fence`n" + (Get-Content SHA256SUMS.txt -Raw).Trim() + "`n$fence`n"
-          $notes += "`nBuilt by [this workflow run]($env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID) from commit $env:GITHUB_SHA.`n"
+          $notes = (Get-Content .github/release-notes.md -Raw).TrimEnd()
+          $notes += "`n`nSHA-256`n$fence`n" + (Get-Content SHA256SUMS.txt -Raw).Trim() + "`n$fence`n"
           Set-Content notes.md $notes
           gh release create $env:GITHUB_REF_NAME ConvertZ.zip SHA256SUMS.txt --title "Convert-Z $($env:GITHUB_REF_NAME.TrimStart('v'))" --notes-file notes.md
