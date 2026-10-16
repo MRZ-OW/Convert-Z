@@ -5,6 +5,12 @@ up next to the original. A small tray icon shows progress while it works, then d
 
 It uses ffmpeg, and your NVIDIA GPU for video if you have one.
 
+![Convert to menu](docs/menu.png)
+
+![Progress in the tray](docs/tray.png)
+
+![Converted file next to the original](docs/result.png)
+
 ## Install
 
 Grab `ConvertZ.zip` from [Releases](../../releases), unzip it and run `Install.cmd`. No admin needed.
